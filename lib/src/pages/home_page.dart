@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gitmark/src/theme/app_theme.dart';
 import 'package:gitmark/src/widgets/cuota_api_info.dart';
+import 'package:gitmark/src/widgets/drawer_app.dart';
 import 'package:gitmark/src/widgets/gitmark_brand.dart';
 import 'package:gitmark/src/widgets/repo_card.dart';
 import 'package:gitmark/src/widgets/tab_bar_app.dart';
@@ -35,6 +36,7 @@ class HomePage extends StatelessWidget {
             onTap: () {},
           ),
         ),
+        drawer: DrawerApp(),
       ),
     );
   }
