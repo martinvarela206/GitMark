@@ -4,6 +4,8 @@ import 'package:gitmark/src/widgets/repo_description.dart';
 import 'package:gitmark/src/widgets/repo_info.dart' show RepoInfo;
 import '../theme/app_theme.dart';
 
+// Este widget le da forma a la cards para mostrar los repositorios y poder accederlos.
+
 class RepoCard extends StatelessWidget {
   final String fullName;
   final String description;
@@ -11,24 +13,24 @@ class RepoCard extends StatelessWidget {
   final String language;
   final VoidCallback? onTap;
 
-  const RepoCard({ // Todos los argumentos para la RepoCard:
+  const RepoCard({ // Parametros que se requieren para la card del repo.
     super.key,
     required this.fullName,
     required this.description,
     required this.starsCount,
     required this.language,
-    this.onTap,
+    this.onTap, // onTap es una función que se ejecutará cuando se presione la card. Que será la que cargue el repositorio para explorarlo.
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card( // Este widget es el contenedor general de RepoCard, define una caja con elevación, bordes definidos y margen exterior.
+    return Card(
       elevation: 0,
       color: AppTheme.fondoTarjeta,
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0), // Clase de datos para definir dimensiones en los 4 costados.
-      shape: RoundedRectangleBorder( // Define que la Card sea redondeada en sus esquinas
-        borderRadius: BorderRadius.circular(12.0), // Establece la redondez de las esquinas de la RepoCard
-        side: const BorderSide(color: AppTheme.bordeSutil, width: 1.0), // Establece el borde de la RepoCard
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: const BorderSide(color: AppTheme.bordeSutil, width: 1.0),
       ),
       child: InkWell( // Al hacer click sobre la card, produce un efecto de onda (ripple effect), de fondo de todo el contenido de la Card.
         onTap: onTap,

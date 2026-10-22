@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:gitmark/src/theme/app_theme.dart';
 
+// Este widget es el avatar para el repositorio.
+
 class RepoAvatar extends StatelessWidget {
-  const RepoAvatar({super.key}); // El widget RepoAvatar no recibe argumentos
+  const RepoAvatar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container( // Este widget contenedor es muy personalizable
+    return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration( // Clase de datos para describir configuraciones visuales de los widgets contenedores
+      decoration: BoxDecoration(
         color: AppTheme.fondoAvatar,
-        borderRadius: BorderRadius.circular(8.0), // Clase de datos para describir la configuración visual de la curvatura de las esquinas de los widgets contenedores
+        borderRadius: BorderRadius.circular(8.0),
       ),
-      child: const Icon( // StatelessWidget para dibujar Iconos en base codepoint
+      child: const Icon(
         Icons.code, 
         color: AppTheme.acentoCyan, 
         size: 22,

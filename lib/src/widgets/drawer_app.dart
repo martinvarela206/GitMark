@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gitmark/src/theme/app_theme.dart';
 
+// Drawer (del inglés Cómoda o Cajonera): Permanece oculta para aprovechar mejor el espacio.
+
 class DrawerApp extends StatelessWidget {
   const new({super.key});
 
@@ -11,6 +13,9 @@ class DrawerApp extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
+
+          // Cabecera del menu desplegable
+
           const DrawerHeader(
             decoration: BoxDecoration(color: AppTheme.fondoPrincipal),
             child: Column(
@@ -34,6 +39,8 @@ class DrawerApp extends StatelessWidget {
               ],
             ),
           ),
+
+          // Opciones de navegación del menu desplegable. El drawer ya incluye scroll.
           ListTile(
             leading: const Icon(Icons.explore, color: AppTheme.acentoCyan),
             title: const Text('Explorar Repositorios', style: TextStyle(color: AppTheme.textoPrincipal)),

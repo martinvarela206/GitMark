@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gitmark/src/theme/app_theme.dart';
 
+// Widget para la descripcion de los repositorios, comprende un titulo y una descripción.
+
 class RepoDescription extends StatelessWidget {
   final String fullName;
   final String description;
 
-  const RepoDescription({ // Este widget recibe 2 argumentos: fullName y description
+  const RepoDescription({
     super.key,
     required this.fullName,
     required this.description,
@@ -16,7 +18,7 @@ class RepoDescription extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text( // Titulo/url del repo, si desborda se coloca "..." (con ellipsis), para indicar que no entro todo el texto.
+        Text( // Titulo/url del repo, si desborda se coloca "..." (con overflow: TextOverflow.ellipsis), para indicar que no entro todo el texto.
           fullName,
           style: const TextStyle(
             color: AppTheme.textoPrincipal,

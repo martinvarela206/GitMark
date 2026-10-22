@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+// Muestra la cuota consumida de consultas gratuitas a la API de GitHub, con un rayo verde, en la esquina superior derecha.
+
 class CuotaApiInfo extends StatelessWidget {
   const new({super.key});
 

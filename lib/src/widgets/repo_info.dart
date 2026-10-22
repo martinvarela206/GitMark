@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gitmark/src/theme/app_theme.dart';
 
+// Este widget sirve para dibujar las estrellas del repo y el lenguaje principal usado en el mismo.
+
 class RepoInfo extends StatelessWidget {
   final int starsCount;
   final String language;
 
-  const RepoInfo({ // Este widget recibe 2 argumentos, cantidad de estrellas y lenguaje
+  const RepoInfo({
     super.key,
     required this.starsCount,
     required this.language,

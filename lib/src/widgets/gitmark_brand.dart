@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gitmark/src/theme/app_theme.dart';
 
+// Este widget se utiliza a modo de Titulo-branding de la app.
+
 class GitmarkBrand extends StatelessWidget {
   const new({super.key});
 
