@@ -1,0 +1,52 @@
+{
+  "repositories": [
+    {
+      "id": "1",
+      "name": "awesome-cheatsheets",
+      "full_name": "LeCoupa/awesome-cheatsheets",
+      "owner": {
+        "login": "LeCoupa",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1041940?v=4"
+      },
+      "description": "Awesome cheatsheets for popular programming languages, frameworks and development tools.",
+      "stargazers_count": 39500,
+      "language": "JavaScript",
+      "private": false,
+      "default_branch": "master",
+      "html_url": "https://github.com/LeCoupa/awesome-cheatsheets",
+      "repo_category": "public"
+    },
+    {
+      "id": "2",
+      "name": "flutter",
+      "full_name": "flutter/flutter",
+      "owner": {
+        "login": "flutter",
+        "avatar_url": "https://avatars.githubusercontent.com/u/14101776?v=4"
+      },
+      "description": "Flutter makes it easy and fast to build beautiful apps for mobile and beyond.",
+      "stargazers_count": 165000,
+      "language": "Dart",
+      "private": false,
+      "default_branch": "master",
+      "html_url": "https://github.com/flutter/flutter",
+      "repo_category": "public"
+    },
+    {
+      "id": "3",
+      "name": "GitMark",
+      "full_name": "martinvarela206/GitMark",
+      "owner": {
+        "login": "martinvarela206",
+        "avatar_url": ""
+      },
+      "description": "Lector y explorador móvil de Markdown para repositorios de GitHub.",
+      "stargazers_count": 12,
+      "language": "Dart",
+      "private": false,
+      "default_branch": "main",
+      "html_url": "https://github.com/martinvarela206/GitMark",
+      "repo_category": "mine"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "docs",
+    "path": "docs",
+    "sha": "dir_docs_01",
+    "size": 0,
+    "type": "dir",
+    "download_url": null
+  },
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "sha": "readme_01",
+    "size": 2450,
+    "type": "file",
+    "download_url": null
+  },
+  {
+    "name": "CONTRIBUTING.md",
+    "path": "CONTRIBUTING.md",
+    "sha": "contrib_01",
+    "size": 1200,
+    "type": "file",
+    "download_url": null
+  },
+  {
+    "name": "pubspec.yaml",
+    "path": "pubspec.yaml",
+    "sha": "pubspec_01",
+    "size": 850,
+    "type": "file",
+    "download_url": null
+  }
+]

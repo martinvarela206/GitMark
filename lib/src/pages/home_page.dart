@@ -1,56 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:gitmark/src/theme/app_theme.dart';
-import 'package:gitmark/src/widgets/cuota_api_info.dart';
-import 'package:gitmark/src/widgets/drawer_app.dart';
-import 'package:gitmark/src/widgets/gitmark_brand.dart';
-import 'package:gitmark/src/widgets/recent_repo_banner.dart';
-import 'package:gitmark/src/widgets/repo_card.dart';
-import 'package:gitmark/src/widgets/repo_search_bar.dart';
-import 'package:gitmark/src/widgets/section_title.dart';
-import 'package:gitmark/src/widgets/tab_bar_app.dart';
+import '../models/repository_model.dart';
+import '../services/local_data_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/cuota_api_info.dart';
+import '../widgets/drawer_app.dart';
+import '../widgets/gitmark_brand.dart';
+import '../widgets/recent_repo_banner.dart';
+import '../widgets/repo_card.dart';
+import '../widgets/repo_search_bar.dart';
+import '../widgets/section_title.dart';
+import '../widgets/tab_bar_app.dart';
+import 'repo_explorer_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  static List<Widget> _temporalListRepoCards() {
-    return const [
-      RepoCard(
-        fullName: 'LeCoupa/awesome-cheatsheets',
-        description: 'Colección curada de cheatsheets para desarrolladores móviles, frontend y backend.',
-        starsCount: 38400,
-        language: 'Markdown',
-      ),
-      RepoCard(
-        fullName: 'flutter/flutter',
-        description: 'Flutter makes it easy and fast to build beautiful apps for mobile and beyond.',
-        starsCount: 165000,
-        language: 'Dart',
-      ),
-      RepoCard(
-        fullName: 'flutter-community/flutter-markdown-guide',
-        description: 'Guía paso a paso interactiva para renderizar documentación Markdown en Flutter.',
-        starsCount: 1520,
-        language: 'Dart',
-      ),
-      RepoCard(
-        fullName: 'martinvarela206/GitMark',
-        description: 'Cliente móvil y web para exploración y lectura optimizada de Markdown en GitHub.',
-        starsCount: 42,
-        language: 'Dart',
-      ),
-      RepoCard(
-        fullName: 'sindresorhus/awesome',
-        description: 'Listas curadas sobre todo tipo de temas interesantes en programación y desarrollo.',
-        starsCount: 310000,
-        language: 'Markdown',
-      ),
-      RepoCard(
-        fullName: 'vinta/awesome-python',
-        description: 'Colección de frameworks, librerías y recursos indispensables del ecosistema Python.',
-        starsCount: 220000,
-        language: 'Python',
-      ),
-    ];
+  // Construye la lista de repositorios leyendo el JSON asíncronamente
+  Widget _buildRepoList(BuildContext context, bool isDesktop) {
+    return FutureBuilder<List<RepositoryModel>>(
+      future: LocalDataService.loadRepositories(),
+      initialData: const [],
+      builder: (BuildContext context, AsyncSnapshot<List<RepositoryModel>> snapshot) {
+        // 1. Estado de carga
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.acentoCyan),
+          );
+        } 
+        // 2. Estado de error
+        else if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error al cargar datos: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        // 3. Datos listos: mapeamos cada RepositoryModel a un widget RepoCard
+        final repos = snapshot.data ?? [];
+        final repoWidgets = repos.map((repo) {
+          return RepoCard(
+            repository: repo,
+            // Al hacer tap, abrimos la pantalla del explorador pasando el repo seleccionado
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RepoExplorerPage(repository: repo),
+                ),
+              );
+            },
+          );
+        }).toList();
+
+        // Muestra en GridView (si es pantalla ancha) o ListView vertical
+        return isDesktop
+            ? GridView.count(
+                crossAxisCount: 2,
+                childAspectRatio: 2.6,
+                padding: const EdgeInsets.only(bottom: 24),
+                children: repoWidgets,
+              )
+            : ListView(
+                padding: const EdgeInsets.only(bottom: 24),
+                children: repoWidgets,
+              );
+      },
+    );
   }
 
   @override
@@ -62,13 +79,10 @@ class HomePage extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: AppTheme.fondoTarjeta,
           elevation: 0,
-
           title: const GitmarkBrand(), // superior izquierda
-          
-          actions: [ // superior derecha
-            CuotaApiInfo(),
+          actions: const [
+            CuotaApiInfo(), // superior derecha
           ],
-
           bottom: const TabBarApp(), // Pestañas
         ),
         body: Column(
@@ -77,14 +91,12 @@ class HomePage extends StatelessWidget {
             const RecentRepoBanner(),
             const SectionTitle(title: 'Repositorios recomendados'),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom:24),
-                children: _temporalListRepoCards()
-              )
-            )
+              // Inyectamos la lista dinámica construida por el FutureBuilder
+              child: _buildRepoList(context, false),
+            ),
           ],
         ),
-        drawer: DrawerApp(),
+        drawer: const DrawerApp(),
       ),
     );
   }

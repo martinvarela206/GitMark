@@ -22,3 +22,4 @@ GitMark es un cliente ágil enfocado en la exploración, lectura formateada y ed
 - Widget RepoCard añadido, mostrando información de un repositorio hardcodeado.
 - Añadir el AppBar con pestañas, branding e Indicador de uso de API, y drawer.
 - Añadir la SearchBar, RecentRepoBanner, SectionTitle y ListView para Repos.
+- Dejar de utilizar datos hardcodeados y utilizar un JSON.
