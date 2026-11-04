@@ -10,7 +10,7 @@ import '../widgets/repo_card.dart';
 import '../widgets/repo_search_bar.dart';
 import '../widgets/section_title.dart';
 import '../widgets/tab_bar_app.dart';
-import 'repo_explorer_page.dart';
+import 'repo_explorer_page.dart'; // Importa la pantalla del explorador
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -72,7 +72,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController( // Gestor automatico de pestaña, sincroniza el TabBar (pestañas) con el TabBarView (contenido para cada pestaña)
+    return DefaultTabController( // Gestor automático de pestañas
       length: 4, // 4 pestañas: Todos, Recientes, Públicos, Mis repos
       child: Scaffold(
         backgroundColor: AppTheme.fondoPrincipal,
