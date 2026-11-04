@@ -19,6 +19,9 @@ class AppTheme {
   static const Color textoSecundario = Color(0xFF8B949E);
   static const Color iconoMuted      = Color(0xFF484F58);
 
+  // Verde característico de GitHub para resaltar código Markdown y texto monoespaciado
+  static const Color codigoVerde = Color(0xFF7EE787);
+
   static const double sizeH1 = 32.0;
 
   static final ThemeData darkTheme = ThemeData(

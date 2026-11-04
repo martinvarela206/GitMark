@@ -18,4 +18,14 @@ class LocalDataService {
     final List<dynamic> filesJson = json.decode(resp);
     return filesJson.map((file) => GitFileModel.fromJson(file)).toList();
   }
+
+  // Carga un archivo Markdown local desde la carpeta assets/data/
+  static Future<String> loadLocalMarkdown(String fileName) async {
+    try {
+      return await rootBundle.loadString('assets/data/$fileName');
+    } catch (e) {
+      // Respaldo seguro: si el archivo pedido no existe, carga el README.md principal
+      return await rootBundle.loadString('assets/data/README.md');
+    }
+  }
 }

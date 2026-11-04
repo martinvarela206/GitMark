@@ -3,6 +3,7 @@ import '../models/repository_model.dart';
 import '../models/git_file_model.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
+import 'document_view_page.dart';
 
 class RepoExplorerPage extends StatelessWidget {
   final RepositoryModel repository;
@@ -58,7 +59,24 @@ class RepoExplorerPage extends StatelessWidget {
                       )
                     : null,
                 onTap: () {
-                  // En el Módulo 05 navegaremos al Visor de Markdown
+                  if (file.isMarkdown) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DocumentViewPage(
+                          repository: repository,
+                          file: file,
+                        ),
+                      ),
+                    );
+                  } else if (file.isDirectory) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Carpeta "${file.name}": La navegación remota se implementará en el Módulo 06.'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 },
               );
             },
