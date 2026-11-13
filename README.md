@@ -36,6 +36,8 @@ En `local_data_service.dart`:
 
 `document_view_page.dart` es la vista que muestra el markdown, utiliza el widget `markdown()` que es el encargado de mostrar los textos markdown con estilos, que se incluye con **flutter_markdown**.
 
+LOs snapshot en las paginas son para si esta cargando muestra el circulo, sino muestra el error y sino devuelve el markdown.
+
 ## Para la presentación prefinal
 
 Para mas adelante hay que cargar los repos públicos de github y efectivamente leer los archivos markdown de esos repos. Hay que ver que sucede con las imágenes que estén en esos repos y enlazados por los markdown. Guardar en local los recientes para evitar consumir peticiones, y mostrar el uso de consumo de peticiones.
