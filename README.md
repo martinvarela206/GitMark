@@ -14,30 +14,31 @@ GitMark es un cliente ágil enfocado en la exploración, lectura formateada y ed
 
 - GitHub mobile: Edición limitada, sin prioridad hacia la lectura fluida de los markdowns.
 - GitJournal: No permite explorar repositorios de terceros.
-- Markor: Requiere otras herramientas para sincronización con GitHub."			Creado el proyecto vacío y refactorizado para separar el MainApp.
+- Markor: Requiere otras herramientas para sincronización con GitHub.
 
 ## Implementado
 
-- Añadir el widget RepoCard que mostrara información base de los repositorios encontrados o guardados.
-- Widget RepoCard añadido, mostrando información de un repositorio hardcodeado.
+- Creado el proyecto vacío y refactorizado para separar responsabilidades entre `main.dart` y `app.dart` (`MainApp`).
+- Añadir el widget RepoCard que muestra información base de los repositorios encontrados o guardados.
+- Widget RepoCard añadido, mostrando información de un repositorio hardcodeado inicialmente.
 - Añadir el AppBar con pestañas, branding e Indicador de uso de API, y drawer.
 - Añadir la SearchBar, RecentRepoBanner, SectionTitle y ListView para Repos.
-- Dejar de utilizar datos hardcodeados y utilizar un JSON.
+- Dejar de utilizar datos hardcodeados y utilizar archivos JSON locales con `LocalDataService` y `FutureBuilder`.
+- Visor de archivos Markdown con estilos y resaltado de código mediante `flutter_markdown`.
 
-## Como funciona
+## Cómo funciona
 
-Los models contienen todo el código para poder parsear desde JSON y a futuro desde API de github.
-
-En services esta de el código para cargar actualmente los archivos locales, falta añadir el service para github, y para sqflite cuando se carguen los repos recientes.
-
-En `local_data_service.dart`:
-- En la parte de json.decode() es donde lee los archivos físicos.
-- En el loadLocalMarkdown() es donde se carga por defecto el README.md cualquiera sea el archivo seleccionado.
-
-`document_view_page.dart` es la vista que muestra el markdown, utiliza el widget `markdown()` que es el encargado de mostrar los textos markdown con estilos, que se incluye con **flutter_markdown**.
-
-LOs snapshot en las paginas son para si esta cargando muestra el circulo, sino muestra el error y sino devuelve el markdown.
+- **Modelos (`models/`):** Contienen todo el código para poder parsear desde JSON local mediante constructores `factory fromJson` y, a futuro, desde la API de GitHub v3. Además disponen de `toMap()` para persistencia en base de datos.
+- **Servicios (`services/`):** En `services/` está el código para cargar actualmente los archivos físicos locales (`local_data_service.dart`). A futuro se añadirá `github_service.dart` para interactuar con la API de GitHub y `database_service.dart` para persistir los repositorios recientes en SQLite (`sqflite`).
+- **En `local_data_service.dart`:**
+  - En la parte de `json.decode(resp)` es donde se leen y parsean los archivos físicos locales cargados con `rootBundle.loadString()`.
+  - En `loadLocalMarkdown(fileName)` es donde se carga por defecto el `README.md` como mecanismo de respaldo seguro (fallback) cualquiera sea el archivo seleccionado si este no existe físicamente en los assets.
+- **En `document_view_page.dart`:** Es la vista que muestra el Markdown; utiliza el widget `Markdown()` de la librería **flutter_markdown**, que es el encargado de parsear y estilizar los textos con jerarquía, bloques de código en verde (`codigoVerde`) y reglas visuales.
+- **Uso de `AsyncSnapshot` en las páginas (`FutureBuilder`):** Permite gestionar reactivamente los tres estados de una operación asíncrona:
+  1. Si está cargando (`ConnectionState.waiting`), muestra el círculo de progreso (`CircularProgressIndicator`).
+  2. Si ocurre un fallo (`snapshot.hasError`), muestra el mensaje de error.
+  3. Si la respuesta está lista (`snapshot.data`), devuelve los datos procesados (el contenido Markdown estilizado o la lista de `RepoCard`).
 
 ## Para la presentación prefinal
 
-Para mas adelante hay que cargar los repos públicos de github y efectivamente leer los archivos markdown de esos repos. Hay que ver que sucede con las imágenes que estén en esos repos y enlazados por los markdown. Guardar en local los recientes para evitar consumir peticiones, y mostrar el uso de consumo de peticiones.
+Para más adelante hay que cargar los repos públicos de GitHub en tiempo real y efectivamente leer los archivos Markdown de esos repos remotos. Hay que contemplar la resolución de imágenes relativas enlazadas en los markdowns (`MarkdownImageResolver`). Guardar en local los repositorios recientes con SQLite (`sqflite`) para evitar consumir peticiones a la API innecesariamente y mostrar en tiempo real el consumo de la cuota con un semáforo reactivo.
