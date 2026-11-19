@@ -5,10 +5,6 @@
 /// Ej: Si se cambia name de "Readme.md" a "Readme_borrador.md", se pierde el nombre original y al intentar
 /// descargar el archivo, la aplicación fallaria. Al hacerlo inmutable se fuerza la necesidad de realizar una
 /// copia del objeto original para cambiar sus valores.
-/// 
-/// El constructor de tipo factory permite deserializar la respuesta JSON, previniendo errores, ya que 
-/// si por querer acceder a json['name'] se escribe json['nmae'] no se detecta hasta la ejecución, 
-/// en cambio con archivo.name, si se escribe archivo.nmae este error salta en tiempo de compilación.
 class GitFileModel {
   final String name;
   final String path;
@@ -29,7 +25,12 @@ class GitFileModel {
   bool get isDirectory => type == 'dir';
   bool get isMarkdown => name.toLowerCase().endsWith('.md');
 
-  // Constructor factory (estilo Dolar.fromJson)
+  /// Constructor factory para deserializar la respuesta JSON en un objeto seguro:
+  /// 1. Previene errores de tipeo en compilación: Permite escribir archivo.name 
+  ///    en lugar de json['name'] (el cual podria dar lugar a errores
+  ///    como json['nmae']), que no serían detectados hasta la ejecución.
+  /// 2. Evita valores nulos: si GitHub o el JSON no traen algún dato, se le asigna un valor
+  ///    por defecto seguro ('' o 0) para que la interfaz nunca crashee.
   factory GitFileModel.fromJson(Map<String, dynamic> json) {
     return GitFileModel(
       name: json['name'] ?? '',
