@@ -1,3 +1,14 @@
+/// El modelo es un objeto que representa archivo o carpetas en el repositorio o en local.
+/// 
+/// Modelo inmutable: Como los objetos se pasan por referencia, al hacerlo inmutable 
+/// se evitan fallos por modificación de atributos.
+/// Ej: Si se cambia name de "Readme.md" a "Readme_borrador.md", se pierde el nombre original y al intentar
+/// descargar el archivo, la aplicación fallaria. Al hacerlo inmutable se fuerza la necesidad de realizar una
+/// copia del objeto original para cambiar sus valores.
+/// 
+/// El constructor de tipo factory permite deserializar la respuesta JSON, previniendo errores, ya que 
+/// si por querer acceder a json['name'] se escribe json['nmae'] no se detecta hasta la ejecución, 
+/// en cambio con archivo.name, si se escribe archivo.nmae este error salta en tiempo de compilación.
 class GitFileModel {
   final String name;
   final String path;
