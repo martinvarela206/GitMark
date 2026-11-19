@@ -5,6 +5,7 @@ import '../models/git_file_model.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
 
+/// Vista principal para la visualización del Markdown.
 class DocumentViewPage extends StatelessWidget {
   final RepositoryModel repository;
   final GitFileModel file;
@@ -53,16 +54,26 @@ class DocumentViewPage extends StatelessWidget {
           ),
         ],
       ),
+      // FutureBuilder gestiona el ciclo de vida asíncrono con el snapshot:
+      // 1. Si está cargando (waiting): muestra el círculo de progreso
+      //    (CircularProgressIndicator).
+      // 2. Si ocurre un fallo (hasError): muestra el error correspondiente en
+      //    pantalla.
+      // 3. Si se completa exitosamente: devuelve el widget Markdown() con el
+      //    contenido parseado y estilizado.
       body: FutureBuilder<String>(
         future: initialContent != null
             ? Future.value(initialContent)
             : LocalDataService.loadLocalMarkdown(file.name),
         builder: (context, snapshot) {
+          // 1. Estado de carga: muestra el círculo
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: AppTheme.acentoCyan),
             );
-          } else if (snapshot.hasError) {
+          } 
+          // 2. Estado de error: muestra el mensaje de fallo
+          else if (snapshot.hasError) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -75,8 +86,12 @@ class DocumentViewPage extends StatelessWidget {
             );
           }
 
+          // 3. Éxito: devuelve el contenido renderizado con el widget Markdown
           final markdownContent = snapshot.data ?? '# Sin contenido disponible';
 
+          /// Se utiliza el widget Markdown() incluido en la librería externa
+          /// 'flutter_markdown' para formatear y renderizar textos Markdown con
+          /// estilos visuales y resaltado de código.
           return Markdown(
             data: markdownContent,
             selectable: true, // Permite seleccionar y copiar texto nativamente
@@ -121,7 +136,7 @@ class DocumentViewPage extends StatelessWidget {
               ),
               // Citas en bloque (> ...) con barra vertical cyan
               blockquoteDecoration: BoxDecoration(
-                color: AppTheme.fondoTarjeta.withOpacity(0.5),
+                color: AppTheme.fondoTarjeta.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(4),
                 border: const Border(
                   left: BorderSide(color: AppTheme.acentoCyan, width: 4),
