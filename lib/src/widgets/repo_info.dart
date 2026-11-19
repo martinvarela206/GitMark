@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:gitmark/src/theme/app_theme.dart';
+import '../theme/app_theme.dart';
 
-// Este widget sirve para dibujar las estrellas del repo y el lenguaje principal usado en el mismo.
-
+/// Componente que dibuja las métricas del repositorio (estrellas y lenguaje de programación).
+/// 
+/// Características pedagógicas:
+/// 1. Formateador numérico (_formatStars): Si un repositorio tiene más de 1.000 estrellas
+///    (ej. 38.400), lo formatea amigablemente como "38.4k" para ahorrar espacio en la tarjeta.
+/// 2. Semántica de color (_getLanguageColor): Asigna un punto de color característico a cada
+///    tecnología (azul para Dart, ámbar para JavaScript, verde para Python, cyan para Markdown).
 class RepoInfo extends StatelessWidget {
   final int starsCount;
   final String language;
@@ -41,16 +46,13 @@ class RepoInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-
-        const Icon( // Icono de la estrella
+        const Icon(
           Icons.star_rounded,
           color: AppTheme.acentoEstrellas,
           size: 16,
         ),
-        
-        const SizedBox(width: 4), // gap horizontal
-        
-        Text( // cantidad de estrellas
+        const SizedBox(width: 4),
+        Text(
           _formatStars(starsCount),
           style: const TextStyle(
             color: AppTheme.textoSecundario,
@@ -58,10 +60,8 @@ class RepoInfo extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-
-        const SizedBox(width: 16), // gap horizontal
-        
-        Container( // Icono del lenguaje
+        const SizedBox(width: 16),
+        Container(
           width: 8,
           height: 8,
           decoration: BoxDecoration(
@@ -69,10 +69,8 @@ class RepoInfo extends StatelessWidget {
             shape: BoxShape.circle,
           ),
         ),
-        
-        const SizedBox(width: 6), // gap horizontal
-        
-        Text( // Lenguaje del repo
+        const SizedBox(width: 6),
+        Text(
           language,
           style: const TextStyle(
             color: AppTheme.textoSecundario,

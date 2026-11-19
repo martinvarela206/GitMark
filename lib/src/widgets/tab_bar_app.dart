@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:gitmark/src/theme/app_theme.dart';
+import '../theme/app_theme.dart';
 
-// Esta es la barra superior con las pestañas. Este es usado en home_page.dart.
-
+/// Barra de pestañas horizontal ubicada en la parte inferior del AppBar de HomePage.
+/// 
+/// ¿Por qué implementa 'PreferredSizeWidget' y sobreescribe 'preferredSize'?
+/// A diferencia de los widgets normales que se adaptan libremente a su contenido,
+/// el AppBar necesita calcular la altura física fija de su encabezado antes de dibujarlo.
+/// Dado que TabBarApp se ubica en la propiedad 'bottom' del AppBar, está obligada por
+/// contrato a declarar cuántos píxeles de alto va a ocupar (en este caso, 48.0 px).
 class TabBarApp extends StatelessWidget implements PreferredSizeWidget {
   const TabBarApp({super.key});
 
@@ -22,12 +27,6 @@ class TabBarApp extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  // A diferencia de otros widget que se estiran o 
-  // encogen según su contenido o espacio disponible, 
-  // AppBar necesita saber cuantos pixeles va a medir. 
-  // Dado que el TabBar va en el Bottom de la AppBar, 
-  // entonces tiene que decirle a esta cuanto espacio 
-  // ocupa en el Bottom.
   @override
   Size get preferredSize => const Size.fromHeight(48.0);
 }

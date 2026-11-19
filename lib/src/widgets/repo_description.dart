@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:gitmark/src/theme/app_theme.dart';
+import '../theme/app_theme.dart';
 
-// Widget para la descripcion de los repositorios, comprende un titulo y una descripción.
-
+/// Componente que renderiza el título del repositorio y su descripción.
+/// 
+/// Prevención del desbordamiento visual (Anti-Overflow):
+/// En dispositivos con pantallas angostas, los títulos y descripciones extensas
+/// pueden provocar el clásico error de franjas amarillas y negras de Flutter ('RenderFlex overflowed').
+/// Para prevenirlo, este widget aplica:
+/// - maxLines: 1 en el título y maxLines: 2 en la descripción.
+/// - TextOverflow.ellipsis: coloca automáticamente puntos suspensivos ("...") si el texto excede el espacio.
 class RepoDescription extends StatelessWidget {
   final String fullName;
   final String description;
@@ -18,7 +24,7 @@ class RepoDescription extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text( // Titulo/url del repo, si desborda se coloca "..." (con overflow: TextOverflow.ellipsis), para indicar que no entro todo el texto.
+        Text(
           fullName,
           style: const TextStyle(
             color: AppTheme.textoPrincipal,
@@ -26,11 +32,9 @@ class RepoDescription extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
           maxLines: 1,
-          overflow: TextOverflow.ellipsis, 
+          overflow: TextOverflow.ellipsis,
         ),
-        
-        const SizedBox(height: 4), // Separador tipo gap vertical
-        
+        const SizedBox(height: 4),
         Text(
           description,
           style: const TextStyle(

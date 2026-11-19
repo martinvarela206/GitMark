@@ -5,10 +5,18 @@ import 'repo_avatar.dart';
 import 'repo_description.dart';
 import 'repo_info.dart';
 
-// Este widget le da forma a la cards para mostrar los repositorios y poder accederlos.
-
+/// Tarjeta visual que presenta un repositorio en las listas de la aplicación.
+/// 
+/// Puntos de diseño y arquitectura:
+/// 1. Encapsulación por modelo: En lugar de recibir 8 parámetros sueltos (nombre, estrellas, avatar, etc.),
+///    recibe directamente la instancia inmutable RepositoryModel, manteniendo el código limpio y seguro.
+/// 2. Efecto táctil (InkWell): Envuelve el contenido en un InkWell para proporcionar la animación de
+///    onda táctil (ripple effect) típica de Material Design respetando las esquinas redondeadas.
+/// 3. Composición modular: Compuesta en una fila (Row) con 3 sub-widgets especializados:
+///    - RepoAvatar: Muestra el avatar o icono por defecto.
+///    - Expanded + Column: Ocupa todo el espacio horizontal restante con título, descripción y métricas.
+///    - Icon: Flecha indicadora (chevron_right) que sugiere navegación al usuario.
 class RepoCard extends StatelessWidget {
-  // Al definir el modelo del repositorio, no hace falta poner cada una de sus elementos
   final RepositoryModel repository;
   final VoidCallback? onTap;
 
@@ -28,22 +36,20 @@ class RepoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         side: const BorderSide(color: AppTheme.bordeSutil, width: 1.0),
       ),
-      child: InkWell( // Al hacer click sobre la card, produce un efecto de onda (ripple effect) de fondo de todo el contenido de la Card.
+      child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12.0),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row( // El contenido de RepoCard está compuesto por 1 fila con 3 columnas (los children: Avatar, Contenido del repo, flechita indicadora de acceso)
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               RepoAvatar(avatarUrl: repository.avatarUrl),
-
-              const SizedBox(width: 16), // Añade un gap entre el Avatar y el contenido del RepoCard
-
-              Expanded( // Este widget es para ocupar todo el espacio posible en horizontal
-                child: Column( // El contenido del RepoCard se distribuye en forma de columna
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [ // Título, Descripción, Estrellas y Lenguajes.
+                  children: [
                     RepoDescription(
                       fullName: repository.fullName,
                       description: repository.description,
@@ -56,10 +62,9 @@ class RepoCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              const Icon( // Flechita para indicar acceso.
-                Icons.chevron_right, 
-                color: AppTheme.iconoMuted, 
+              const Icon(
+                Icons.chevron_right,
+                color: AppTheme.iconoMuted,
                 size: 20,
               ),
             ],

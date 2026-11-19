@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-// Este widget es la barra de busqueda de los repositorios.
-
+/// Barra de búsqueda de repositorios estilizada en formato píldora.
+/// 
+/// Características:
+/// 1. 'TextField' desacoplado: Expone el callback 'onChanged' para que la pantalla que lo use
+///    pueda filtrar la lista en vivo sin que la barra de búsqueda conozca la lista de datos.
+/// 2. 'border: InputBorder.none': Elimina la línea inferior por defecto de Material para
+///    mantener una estética limpia dentro del contenedor con bordes redondeados (borderRadius: 24).
 class RepoSearchBar extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
@@ -23,11 +28,11 @@ class RepoSearchBar extends StatelessWidget {
       child: TextField(
         onChanged: onChanged,
         style: const TextStyle(color: AppTheme.textoPrincipal, fontSize: 14),
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           hintText: 'Buscar repositorio (owner/repo)...',
-          hintStyle: const TextStyle(color: AppTheme.textoSecundario, fontSize: 13),
-          prefixIcon: const Icon(Icons.search, color: AppTheme.textoSecundario, size: 20),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          hintStyle: TextStyle(color: AppTheme.textoSecundario, fontSize: 13),
+          prefixIcon: Icon(Icons.search, color: AppTheme.textoSecundario, size: 20),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           border: InputBorder.none,
         ),
       ),

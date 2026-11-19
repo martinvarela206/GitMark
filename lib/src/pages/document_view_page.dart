@@ -5,7 +5,12 @@ import '../models/git_file_model.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
 
-/// Vista principal para la visualización del Markdown.
+/// Vista principal para la visualización y lectura de documentos Markdown (.md).
+/// 
+/// ¿Por qué es un StatelessWidget?
+/// Porque el documento recibido (o cargado por red/local) no sufre mutaciones interactivas
+/// de estado dentro de esta pantalla. La gestión del ciclo de vida asíncrono (carga, error y éxito)
+/// se delega por completo a FutureBuilder.
 class DocumentViewPage extends StatelessWidget {
   final RepositoryModel repository;
   final GitFileModel file;
