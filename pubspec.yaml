@@ -11,7 +11,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  flutter_markdown: ^0.7.7+1
+  flutter_markdown: ^0.7.7+1  # Widget para mostrar el markdown con estilos.
+  http: ^1.2.2                # Cliente HTTP para API REST de GitHub.
+  sqflite: ^2.4.1             # Para uso de SQLite en el móvil.
+  path: ^1.9.0                # Manejador de rutas de almacenamiento interno.
 
 dev_dependencies:
   flutter_test:
