@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
 import '../services/rate_limit_service.dart';
 
-/// Widget reactivo situado en el AppBar superior que muestra la cuota restante
-/// de peticiones a la API de GitHub mediante un aro circular de carga y semáforo.
+/// Widget reactivo en el AppBar que visualiza la cuota disponible de la API de GitHub.
+/// 
+/// ¿Por qué es un StatelessWidget si su contenido cambia en vivo?
+/// Porque utiliza el widget reactivo 'ListenableBuilder':
+/// En lugar de convertir todo el widget o la pantalla en un StatefulWidget con setState(),
+/// ListenableBuilder escucha directamente a 'RateLimitService.instance' y redibuja
+/// EXCLUSIVAMENTE este pequeño componente cuando la cuota cambia, optimizando el rendimiento.
+/// 
+/// Composición visual:
+/// - Tooltip: Muestra un mensaje flotante accesible al mantener presionado.
+/// - InkWell: Permite pulsar el indicador para abrir un SnackBar con el tiempo de reinicio.
+/// - Stack: Superpone dos elementos en el mismo espacio: el aro de progreso circular de fondo
+///   y el icono del rayo (Icons.bolt) exactamente en el centro.
+/// - Semáforo dinámico: El color del aro, del rayo y del texto cambia reactivamente
+///   (verde, ámbar o rojo) según el estado de la cuota calculada por el servicio.
 class CuotaApiInfo extends StatelessWidget {
   const CuotaApiInfo({super.key});
 
@@ -36,7 +49,7 @@ class CuotaApiInfo extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Aro circular con el rayo en su centro
+                  // Superposición con Stack: Aro circular exterior + Rayo en el centro
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -44,7 +57,7 @@ class CuotaApiInfo extends StatelessWidget {
                         width: 26,
                         height: 26,
                         child: CircularProgressIndicator(
-                          value: progress,
+                          value: progress, // Valor entre 0.0 y 1.0
                           strokeWidth: 2.8,
                           backgroundColor: Colors.white12,
                           valueColor: AlwaysStoppedAnimation<Color>(color),
@@ -58,7 +71,7 @@ class CuotaApiInfo extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(width: 8),
-                  // Valor numérico de cuota restante
+                  // Contador numérico de peticiones restantes
                   Text(
                     '$remaining',
                     style: TextStyle(

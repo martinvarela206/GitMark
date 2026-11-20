@@ -49,16 +49,29 @@ class RepositoryModel {
   /// 3. Desempaqueta objetos anidados (como extraer el nombre y avatar desde el mapa 'owner').
   factory RepositoryModel.fromJson(Map<String, dynamic> json) {
     final ownerMap = json['owner'];
+    final ownerName = ownerMap is Map
+        ? (ownerMap['login'] ?? '')
+        : (json['owner']?.toString() ?? '');
+
+    final avatar = ownerMap is Map
+        ? (ownerMap['avatar_url'] ?? '')
+        : (json['avatar_url']?.toString() ?? '');
+
+    final String fallbackName = json['name'] ?? 'Sin nombre';
+    final String fullName = json['full_name'] ??
+        (ownerName.isNotEmpty ? '$ownerName/$fallbackName' : fallbackName);
+
     return RepositoryModel(
       id: json['id']?.toString() ?? '',
-      name: json['name'] ?? 'Sin nombre',
-      fullName: json['full_name'] ?? json['name'] ?? '',
-      owner: ownerMap is Map ? (ownerMap['login'] ?? '') : (json['owner']?.toString() ?? ''),
-      avatarUrl: ownerMap is Map ? (ownerMap['avatar_url'] ?? '') : '',
+      name: fallbackName,
+      fullName: fullName,
+      owner: ownerName,
+      avatarUrl: avatar,
       description: json['description'] ?? 'Sin descripción disponible',
       starsCount: json['stargazers_count'] ?? json['stars_count'] ?? 0,
       language: json['language'] ?? 'Markdown',
-      isPrivate: json['private'] == true,
+      // Soporta tanto booleanos nativos de JSON como enteros 1/0 de SQLite
+      isPrivate: json['private'] == true || json['is_private'] == 1,
       defaultBranch: json['default_branch'] ?? 'main',
       htmlUrl: json['html_url'] ?? '',
       repoCategory: json['repo_category'] ?? 'public',
@@ -72,6 +85,7 @@ class RepositoryModel {
     return {
       'id': id,
       'name': name,
+      'full_name': fullName,
       'owner': owner,
       'description': description,
       'stars_count': starsCount,

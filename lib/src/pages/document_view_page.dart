@@ -1,7 +1,12 @@
+// ==============================================================================
+// ARCHIVO COMPLETO: lib/src/pages/document_view_page.dart
+// ==============================================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../models/repository_model.dart';
+
 import '../models/git_file_model.dart';
+import '../models/repository_model.dart';
+import '../services/github_service.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
 
@@ -22,6 +27,29 @@ class DocumentViewPage extends StatelessWidget {
     required this.file,
     this.initialContent,
   });
+
+  /// Determina la estrategia de obtención del Markdown:
+  /// 1. Si se le pasó contenido inicial en memoria, lo devuelve directamente.
+  /// 2. Si el repositorio es remoto (github.com), lo descarga en tiempo real vía GitHubService.
+  /// 3. Si es local, lo lee de los assets empaquetados mediante LocalDataService.
+  Future<String> _obtenerContenidoMarkdown() {
+    if (initialContent != null) {
+      return Future.value(initialContent);
+    }
+
+    // Si el repositorio proviene de GitHub, descargamos el markdown en vivo
+    if (repository.htmlUrl.contains('github.com')) {
+      return GitHubService.instance.getRawMarkdown(
+        repository.owner,
+        repository.name,
+        file.path,
+        downloadUrl: file.downloadUrl,
+      );
+    }
+
+    // Si es un repositorio mock local, lee desde assets
+    return LocalDataService.loadLocalMarkdown(file.name);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,16 +88,11 @@ class DocumentViewPage extends StatelessWidget {
         ],
       ),
       // FutureBuilder gestiona el ciclo de vida asíncrono con el snapshot:
-      // 1. Si está cargando (waiting): muestra el círculo de progreso
-      //    (CircularProgressIndicator).
-      // 2. Si ocurre un fallo (hasError): muestra el error correspondiente en
-      //    pantalla.
-      // 3. Si se completa exitosamente: devuelve el widget Markdown() con el
-      //    contenido parseado y estilizado.
+      // 1. Si está cargando (waiting): muestra el círculo de progreso (CircularProgressIndicator).
+      // 2. Si ocurre un fallo (hasError): muestra el error correspondiente en pantalla.
+      // 3. Si se completa exitosamente: devuelve el widget Markdown() con el contenido parseado y estilizado.
       body: FutureBuilder<String>(
-        future: initialContent != null
-            ? Future.value(initialContent)
-            : LocalDataService.loadLocalMarkdown(file.name),
+        future: _obtenerContenidoMarkdown(),
         builder: (context, snapshot) {
           // 1. Estado de carga: muestra el círculo
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -82,10 +105,17 @@ class DocumentViewPage extends StatelessWidget {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Error al cargar el documento: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.redAccent),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.cloud_off, color: Colors.redAccent, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Error al descargar Markdown: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.redAccent),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             );
@@ -111,26 +141,19 @@ class DocumentViewPage extends StatelessWidget {
               // Encabezados H1, H2, H3 con jerarquía y color temático
               h1: const TextStyle(
                 color: AppTheme.acentoCyan,
-                fontWeight: FontWeight.bold,
                 fontSize: 22,
-                height: 1.4,
+                fontWeight: FontWeight.bold,
               ),
               h2: const TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
                 fontSize: 18,
-                height: 1.4,
-              ),
-              h3: const TextStyle(
-                color: AppTheme.acentoCyan,
-                fontWeight: FontWeight.w500,
-                fontSize: 15,
+                fontWeight: FontWeight.bold,
               ),
               // Código inline (ej. `void main()`)
               code: const TextStyle(
                 backgroundColor: AppTheme.fondoTarjeta,
-                fontFamily: 'monospace',
                 color: AppTheme.codigoVerde,
+                fontFamily: 'monospace',
                 fontSize: 13,
               ),
               // Bloques de código con fondo diferenciado y borde sutil
@@ -142,7 +165,7 @@ class DocumentViewPage extends StatelessWidget {
               // Citas en bloque (> ...) con barra vertical cyan
               blockquoteDecoration: BoxDecoration(
                 color: AppTheme.fondoTarjeta.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(6),
                 border: const Border(
                   left: BorderSide(color: AppTheme.acentoCyan, width: 4),
                 ),
