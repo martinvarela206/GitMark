@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/git_file_model.dart';
 import '../models/repository_model.dart';
+import 'database_service.dart';
 import 'rate_limit_service.dart';
 
 /// Cliente de red para consumir la API pública REST v3 de GitHub.
@@ -104,5 +105,49 @@ class GitHubService {
     }
 
     throw Exception('No se pudo decodificar el contenido del archivo Markdown.');
+  }
+
+  /// Sincroniza un repositorio para disponibilidad offline:
+  /// 1. Consulta los metadatos remotos para verificar la fecha de última modificación (updated_at).
+  /// 2. Descarga la estructura raíz del repositorio y la persiste en SQLite.
+  /// 3. Descarga los archivos Markdown principales (como README.md) y los guarda en caché.
+  /// 4. Marca el repositorio como sincronizado (is_synced = 1) en la base de datos local.
+  Future<bool> sincronizarRepositorio(RepositoryModel repo) async {
+    // 1. Obtenemos los metadatos frescos de GitHub
+    final remoteRepo = await getRepository(repo.owner, repo.name);
+
+    // Si ya estaba sincronizado y la fecha de actualización remota coincide, no hay cambios
+    if (repo.isSynced && repo.updatedAt.isNotEmpty && repo.updatedAt == remoteRepo.updatedAt) {
+      return false; // Ya está al día
+    }
+
+    // 2. Descargamos la estructura del árbol raíz
+    final rootFiles = await getRepoContents(repo.owner, repo.name, path: '');
+    await DatabaseService.instance.saveRepoTree(repo.id, '', rootFiles);
+
+    // 3. Descargamos y cacheamos los Markdown del nivel raíz (ej: README.md)
+    for (final file in rootFiles) {
+      if (file.isMarkdown) {
+        try {
+          final content = await getRawMarkdown(
+            repo.owner,
+            repo.name,
+            file.path,
+            downloadUrl: file.downloadUrl,
+          );
+          await DatabaseService.instance.saveMarkdown(repo.id, file.path, content);
+        } catch (_) {}
+      }
+    }
+
+    // 4. Marcamos el repositorio como sincronizado con la nueva fecha
+    await DatabaseService.instance.insertOrUpdate(
+      repo.copyWith(
+        isSynced: true,
+        updatedAt: remoteRepo.updatedAt,
+      ),
+    );
+
+    return true; // Se sincronizaron cambios
   }
 }

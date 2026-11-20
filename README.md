@@ -1,44 +1,46 @@
 # GitMark
 
-GitMark es un cliente ágil enfocado en la exploración, lectura formateada y edición directa de archivos `.md` en repositorios remotos de GitHub mediante la API REST v3, sin necesidad de clonar historiales pesados.	
+GitMark es un cliente móvil ágil enfocado en la exploración, lectura formateada y edición directa de archivos `.md` en repositorios remotos de GitHub mediante la API REST v3, sin necesidad de clonar historiales pesados.
 
 ## Funcionalidades
 
-- Exploración de repositorios públicos, privados o con acceso de colaborador.
-- Previsualización estilada de Markdowns.
-- Modo Anónimo o logeado.
-- Edición de Markdown WYSIWYG y pusheo al repositorio.
-- Almacenamiento de recientes en BBDD SQLite en el dispositivo, para reducir el consumo de peticiones a la API de Github y modificar markdowns sin conexión.
+### Implementadas
+- **Arquitectura y UI modular:** Separación limpia entre `main.dart` y `app.dart`, AppBar con branding, Drawer lateral, `RecentRepoBanner`, `RepoCard` interactivo y scroll infinito con `ListView.builder`.
+- **Integración con API REST v3 de GitHub:** Consulta de metadatos, árbol de carpetas y descarga de contenido Markdown crudo en tiempo real mediante `GitHubService`.
+- **Caché y Persistencia Offline (SQLite):** `DatabaseService` relacional con estrategia *Cache-First* para metadatos (`repositories`), estructura de directorios (`repo_tree`) y contenido de documentos (`markdown_cache`).
+- **Sincronización Selectiva:** Detección de cambios remotos contrastando `updated_at` con icono de nube interactivo (`cloud_done` / `cloud_download_outlined`) y alertas contextuales.
+- **Monitor Reactivo de Cuota:** Semáforo en vivo (`RateLimitService` y `CuotaApiInfo`) alimentado por los encabezados `x-ratelimit-*`.
+- **Visor de Markdown Estilizado:** Renderizado en modo oscuro con `flutter_markdown` en `DocumentViewPage`, bloques de código tematizados y selección nativa de texto.
+- **Fallback Local Seguro:** Carga de repositorios empaquetados mediante `LocalDataService` para contingencias o demostraciones.
 
-## Aplicaciones similares
+### Planificadas (Para la versión final)
+- **Reestructuración de Pestañas Principales:**
+  - **Recomendados:** Muestra en primer lugar el acceso rápido al último repositorio visitado, seguido por el repositorio oficial de GitMark (`martinvarela206/GitMark`), el perfil personalizado del autor (`martinvarela206`) y `LeCoupa/awesome-cheatsheets`.
+  - **Recientes:** Repositorios almacenados localmente en SQLite, limitados a un cupo máximo estricto de 20 elementos para cuidar la memoria del móvil (política de reemplazo por inactividad: al alcanzar el límite, se depura automáticamente el que lleve más tiempo sin ser accedido).
+  - **Buscados:** Pestaña exclusiva donde reside la barra de búsqueda; retiene en memoria los metadatos de las búsquedas recientes para su consulta ágil sin persistirlos en SQLite.
+  - **Privados:** Sección dedicada a los repositorios propios del usuario autenticado.
+- **Edición de Texto y Flujo de Confirmación:**
+  - Editor en texto plano mediante campo desplazable con scroll (sin componentes WYSIWYG ni barras de estilo).
+  - Pantalla secundaria de confirmación para redactar el mensaje de commit y ejecutar el push remoto.
+  - Guardado temporal de borradores en SQLite para múltiples documentos simultáneos, permitiendo trabajo offline y depurando automáticamente el registro temporal tras completar el push exitosamente.
+- **Autenticación con GitHub (Login / Token):** Identificación de usuario para elevar la cuota a 5.000 req/h y acceder a repositorios privados o de colaborador.
+- **Resolución de Imágenes Relativas (`MarkdownImageResolver`):** Conversión automática de rutas relativas locales a URLs crudas absolutas de GitHub para cargar correctamente imágenes dentro de los Markdown.
 
-- GitHub mobile: Edición limitada, sin prioridad hacia la lectura fluida de los markdowns.
-- GitJournal: No permite explorar repositorios de terceros.
-- Markor: Requiere otras herramientas para sincronización con GitHub.
+## Aplicaciones Similares
 
-## Implementado
+- **GitHub Mobile:** Edición limitada y sin prioridad hacia la lectura fluida de archivos Markdown.
+- **GitJournal:** No permite explorar repositorios de terceros.
+- **Markor:** Requiere herramientas externas para sincronizar con repositorios de GitHub.
 
-- Creado el proyecto vacío y refactorizado para separar responsabilidades entre `main.dart` y `app.dart` (`MainApp`).
-- Añadir el widget RepoCard que muestra información base de los repositorios encontrados o guardados.
-- Widget RepoCard añadido, mostrando información de un repositorio hardcodeado inicialmente.
-- Añadir el AppBar con pestañas, branding e Indicador de uso de API, y drawer.
-- Añadir la SearchBar, RecentRepoBanner, SectionTitle y ListView para Repos.
-- Dejar de utilizar datos hardcodeados y utilizar archivos JSON locales con `LocalDataService` y `FutureBuilder`.
-- Visor de archivos Markdown con estilos y resaltado de código mediante `flutter_markdown`.
+## Cómo Funciona (Resumen Sintético)
 
-## Cómo funciona
-
-- **Modelos (`models/`):** Contienen todo el código para poder parsear desde JSON local mediante constructores `factory fromJson` y, a futuro, desde la API de GitHub v3. Además disponen de `toMap()` para persistencia en base de datos.
-- **Servicios (`services/`):** En `services/` está el código para cargar actualmente los archivos físicos locales (`local_data_service.dart`). A futuro se añadirá `github_service.dart` para interactuar con la API de GitHub y `database_service.dart` para persistir los repositorios recientes en SQLite (`sqflite`).
-- **En `local_data_service.dart`:**
-  - En la parte de `json.decode(resp)` es donde se leen y parsean los archivos físicos locales cargados con `rootBundle.loadString()`.
-  - En `loadLocalMarkdown(fileName)` es donde se carga por defecto el `README.md` como mecanismo de respaldo seguro (fallback) cualquiera sea el archivo seleccionado si este no existe físicamente en los assets.
-- **En `document_view_page.dart`:** Es la vista que muestra el Markdown; utiliza el widget `Markdown()` de la librería **flutter_markdown**, que es el encargado de parsear y estilizar los textos con jerarquía, bloques de código en verde (`codigoVerde`) y reglas visuales.
-- **Uso de `AsyncSnapshot` en las páginas (`FutureBuilder`):** Permite gestionar reactivamente los tres estados de una operación asíncrona:
-  1. Si está cargando (`ConnectionState.waiting`), muestra el círculo de progreso (`CircularProgressIndicator`).
-  2. Si ocurre un fallo (`snapshot.hasError`), muestra el mensaje de error.
-  3. Si la respuesta está lista (`snapshot.data`), devuelve los datos procesados (el contenido Markdown estilizado o la lista de `RepoCard`).
-
-## Para la presentación prefinal
-
-Para más adelante hay que cargar los repos públicos de GitHub en tiempo real y efectivamente leer los archivos Markdown de esos repos remotos. Hay que contemplar la resolución de imágenes relativas enlazadas en los markdowns (`MarkdownImageResolver`). Guardar en local los repositorios recientes con SQLite (`sqflite`) para evitar consumir peticiones a la API innecesariamente y mostrar en tiempo real el consumo de la cuota con un semáforo reactivo.
+- **Modelos (`models/`):** Clases inmutables con constructores `factory fromJson` para deserialización segura de API o SQLite, `toMap()` para almacenamiento relacional y `copyWith()` para derivación de estados reactivos.
+- **Servicios (`services/`):**
+  - `GitHubService`: Singleton cliente de red con cabeceras requeridas (`User-Agent`, `Accept: v3`) y resolución jerárquica de contenidos.
+  - `DatabaseService`: Singleton SQLite para transacciones, consultas de historial reciente y almacenamiento de árboles y documentos.
+  - `RateLimitService`: Singleton reactivo que transmite el estado de consumo de cuota al AppBar.
+  - `LocalDataService`: Soporte de contingencia y lectura de activos locales.
+- **Vistas y Navegación (`pages/`):**
+  - `HomePage`: Orquestador de pestañas, banner dinámico y recarga mediante `RefreshIndicator`.
+  - `RepoExplorerPage`: Exploración recursiva de directorios con navegación por pila (`PopScope`) y resolución *Cache-First*.
+  - `DocumentViewPage`: Vista de lectura desacoplada con gestión de estados asíncronos mediante `FutureBuilder`.

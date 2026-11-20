@@ -22,6 +22,14 @@ class RepositoryModel {
   final String htmlUrl;
   final String repoCategory;
 
+  /// Fecha ISO-8601 o timestamp de la última actualización remota en GitHub.
+  /// Permite contrastar con el servidor si hubo cambios antes de re-descargar.
+  final String updatedAt;
+
+  /// Bandera booleana que indica si el repositorio y sus contenidos principales
+  /// ya fueron descargados y persistidos localmente en SQLite para uso offline.
+  final bool isSynced;
+
   const RepositoryModel({
     required this.id,
     required this.name,
@@ -35,6 +43,8 @@ class RepositoryModel {
     this.defaultBranch = 'main',
     required this.htmlUrl,
     this.repoCategory = 'public',
+    this.updatedAt = '',
+    this.isSynced = false,
   });
 
   /// Constructor factory para deserializar la respuesta JSON en un objeto
@@ -75,6 +85,8 @@ class RepositoryModel {
       defaultBranch: json['default_branch'] ?? 'main',
       htmlUrl: json['html_url'] ?? '',
       repoCategory: json['repo_category'] ?? 'public',
+      updatedAt: json['updated_at']?.toString() ?? json['pushed_at']?.toString() ?? '',
+      isSynced: json['is_synced'] == 1 || json['is_synced'] == true,
     );
   }
 
@@ -95,6 +107,44 @@ class RepositoryModel {
       'is_private': isPrivate ? 1 : 0,
       'default_branch': defaultBranch,
       'repo_category': repoCategory,
+      'updated_at': updatedAt,
+      'is_synced': isSynced ? 1 : 0,
     };
+  }
+
+  /// Permite generar una copia inmutable modificando únicamente los campos deseados.
+  /// Esencial para actualizar el estado de sincronización sin mutar la instancia previa.
+  RepositoryModel copyWith({
+    String? id,
+    String? name,
+    String? fullName,
+    String? owner,
+    String? avatarUrl,
+    String? description,
+    int? starsCount,
+    String? language,
+    bool? isPrivate,
+    String? defaultBranch,
+    String? htmlUrl,
+    String? repoCategory,
+    String? updatedAt,
+    bool? isSynced,
+  }) {
+    return RepositoryModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      fullName: fullName ?? this.fullName,
+      owner: owner ?? this.owner,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      description: description ?? this.description,
+      starsCount: starsCount ?? this.starsCount,
+      language: language ?? this.language,
+      isPrivate: isPrivate ?? this.isPrivate,
+      defaultBranch: defaultBranch ?? this.defaultBranch,
+      htmlUrl: htmlUrl ?? this.htmlUrl,
+      repoCategory: repoCategory ?? this.repoCategory,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isSynced: isSynced ?? this.isSynced,
+    );
   }
 }

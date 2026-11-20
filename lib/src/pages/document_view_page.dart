@@ -1,11 +1,9 @@
-// ==============================================================================
-// ARCHIVO COMPLETO: lib/src/pages/document_view_page.dart
-// ==============================================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../models/git_file_model.dart';
 import '../models/repository_model.dart';
+import '../services/database_service.dart';
 import '../services/github_service.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
@@ -30,21 +28,35 @@ class DocumentViewPage extends StatelessWidget {
 
   /// Determina la estrategia de obtención del Markdown:
   /// 1. Si se le pasó contenido inicial en memoria, lo devuelve directamente.
-  /// 2. Si el repositorio es remoto (github.com), lo descarga en tiempo real vía GitHubService.
+  /// 2. Si el repositorio es remoto (github.com), consulta primero a SQLite (Cache-First).
+  ///    Si ya fue visitado o sincronizado, lo devuelve de inmediato sin consumir cuota de red.
+  ///    Si no está en SQLite, lo descarga en tiempo real vía GitHubService y lo guarda en caché.
   /// 3. Si es local, lo lee de los assets empaquetados mediante LocalDataService.
-  Future<String> _obtenerContenidoMarkdown() {
+  Future<String> _obtenerContenidoMarkdown() async {
     if (initialContent != null) {
-      return Future.value(initialContent);
+      return initialContent!;
     }
 
-    // Si el repositorio proviene de GitHub, descargamos el markdown en vivo
+    // Si el repositorio proviene de GitHub, aplicamos estrategia Cache-First
     if (repository.htmlUrl.contains('github.com')) {
-      return GitHubService.instance.getRawMarkdown(
+      // 1. Verificamos si ya existe en la caché local de SQLite
+      final cached = await DatabaseService.instance.getMarkdown(repository.id, file.path);
+      if (cached != null && cached.isNotEmpty) {
+        return cached; // ¡Lectura instantánea offline sin consumir cuota de la API!
+      }
+
+      // 2. Si no estaba guardado, lo descargamos de la red
+      final remoteContent = await GitHubService.instance.getRawMarkdown(
         repository.owner,
         repository.name,
         file.path,
         downloadUrl: file.downloadUrl,
       );
+
+      // 3. Lo persistimos en SQLite para futuras consultas sin conexión
+      await DatabaseService.instance.saveMarkdown(repository.id, file.path, remoteContent);
+
+      return remoteContent;
     }
 
     // Si es un repositorio mock local, lee desde assets

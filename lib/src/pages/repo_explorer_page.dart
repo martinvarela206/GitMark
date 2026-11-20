@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/git_file_model.dart';
 import '../models/repository_model.dart';
+import '../services/database_service.dart';
 import '../services/github_service.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
@@ -27,6 +28,7 @@ class _RepoExplorerPageState extends State<RepoExplorerPage> {
   String _currentPath = '';
   final List<String> _pathHistory = [];
   bool _isLoading = false;
+  bool _isFromCache = false;
   String? _errorMessage;
   List<GitFileModel> _files = [];
 
@@ -39,25 +41,52 @@ class _RepoExplorerPageState extends State<RepoExplorerPage> {
     _cargarContenidos();
   }
 
-  /// Consulta los archivos: en vivo desde GitHub API si es remoto, o desde assets si es local
-  Future<void> _cargarContenidos() async {
+  /// Consulta los archivos: primero desde SQLite (Cache-First) para ahorrar cuota,
+  /// o desde GitHub API si es remoto y no estaba cacheado (o forceRefresh).
+  Future<void> _cargarContenidos({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      List<GitFileModel> result;
+      List<GitFileModel> result = [];
+
       if (_isRemote) {
-        // Carga remota en vivo desde la API de GitHub
+        // 1. Intentamos leer desde la caché local de SQLite si no se forzó refresco
+        if (!forceRefresh) {
+          final cached = await DatabaseService.instance.getRepoTree(
+            widget.repository.id,
+            _currentPath,
+          );
+          if (cached != null && cached.isNotEmpty) {
+            setState(() {
+              _files = cached;
+              _isFromCache = true;
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+
+        // 2. Si no estaba en caché o se pidió refrescar, consultamos a la API de GitHub
         result = await GitHubService.instance.getRepoContents(
           widget.repository.owner,
           widget.repository.name,
           path: _currentPath,
         );
+
+        // 3. Persistimos los resultados en SQLite para navegación offline futura
+        await DatabaseService.instance.saveRepoTree(
+          widget.repository.id,
+          _currentPath,
+          result,
+        );
+        _isFromCache = false;
       } else {
         // Carga simulada local (para repositorios mock)
         result = await LocalDataService.loadRepoFiles();
+        _isFromCache = true;
       }
 
       setState(() {
@@ -113,9 +142,34 @@ class _RepoExplorerPageState extends State<RepoExplorerPage> {
                 widget.repository.name,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              Text(
-                subTitulo,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textoSecundario),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      subTitulo,
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textoSecundario),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (_isFromCache)
+                    Container(
+                      margin: const EdgeInsets.only(left: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppTheme.acentoCyan.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppTheme.acentoCyan.withValues(alpha: 0.4)),
+                      ),
+                      child: const Text(
+                        'OFFLINE (CACHÉ)',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.acentoCyan,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -127,6 +181,13 @@ class _RepoExplorerPageState extends State<RepoExplorerPage> {
               }
             },
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Forzar recarga remota',
+              onPressed: () => _cargarContenidos(forceRefresh: true),
+            ),
+          ],
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppTheme.acentoCyan))
@@ -146,9 +207,13 @@ class _RepoExplorerPageState extends State<RepoExplorerPage> {
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
-                            onPressed: _cargarContenidos,
+                            onPressed: () => _cargarContenidos(forceRefresh: true),
                             icon: const Icon(Icons.refresh),
                             label: const Text('Reintentar'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.acentoCyan,
+                              foregroundColor: Colors.black,
+                            ),
                           ),
                         ],
                       ),
@@ -158,69 +223,74 @@ class _RepoExplorerPageState extends State<RepoExplorerPage> {
                 // A diferencia de ListView.builder, incluye automáticamente un separatorBuilder
                 // para dibujar líneas divisorias tenues (Dividers) entre cada elemento sin tener
                 // que calcular márgenes manuales.
-                : ListView.separated(
-                    itemCount: _files.length,
-                    separatorBuilder: (context, index) => const Divider(
-                      height: 1,
-                      color: Colors.white10,
-                    ),
-                    itemBuilder: (context, index) {
-                      final file = _files[index];
-                      final isMd = file.isMarkdown;
+                : RefreshIndicator(
+                    color: AppTheme.acentoCyan,
+                    backgroundColor: AppTheme.fondoTarjeta,
+                    onRefresh: () => _cargarContenidos(forceRefresh: true),
+                    child: ListView.separated(
+                      itemCount: _files.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 1,
+                        color: Colors.white10,
+                      ),
+                      itemBuilder: (context, index) {
+                        final file = _files[index];
+                        final isMd = file.isMarkdown;
 
-                      return ListTile(
-                        // Diferenciación visual de iconos según el tipo de archivo:
-                        // - Carpeta: Icono folder en cyan.
-                        // - Archivo Markdown: Icono description en ámbar.
-                        // - Archivo común: Icono genérico en gris.
-                        leading: Icon(
-                          file.isDirectory
-                              ? Icons.folder
-                              : (isMd ? Icons.description : Icons.insert_drive_file),
-                          color: file.isDirectory
-                              ? AppTheme.acentoCyan
-                              : (isMd ? Colors.amber : Colors.grey),
-                        ),
-                        title: Text(
-                          file.name,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        // Si es un documento Markdown (.md), mostramos un chip llamativo con el texto "Leer"
-                        trailing: isMd
-                            ? const Chip(
-                                label: Text(
-                                  'Leer',
-                                  style: TextStyle(fontSize: 10, color: Colors.black),
+                        return ListTile(
+                          // Diferenciación visual de iconos según el tipo de archivo:
+                          // - Carpeta: Icono folder en cyan.
+                          // - Archivo Markdown: Icono description en ámbar.
+                          // - Archivo común: Icono genérico en gris.
+                          leading: Icon(
+                            file.isDirectory
+                                ? Icons.folder
+                                : (isMd ? Icons.description : Icons.insert_drive_file),
+                            color: file.isDirectory
+                                ? AppTheme.acentoCyan
+                                : (isMd ? Colors.amber : Colors.grey),
+                          ),
+                          title: Text(
+                            file.name,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          // Si es un documento Markdown (.md), mostramos un chip llamativo con el texto "Leer"
+                          trailing: isMd
+                              ? const Chip(
+                                  label: Text(
+                                    'Leer',
+                                    style: TextStyle(fontSize: 10, color: Colors.black),
+                                  ),
+                                  backgroundColor: Colors.amber,
+                                  visualDensity: VisualDensity.compact,
+                                )
+                              : null,
+                          onTap: () {
+                            if (file.isDirectory) {
+                              _entrarEnCarpeta(file.name);
+                            } else if (file.isMarkdown) {
+                              // Si es Markdown, abrimos el visor de documentos (DocumentViewPage)
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DocumentViewPage(
+                                    repository: widget.repository,
+                                    file: file,
+                                  ),
                                 ),
-                                backgroundColor: Colors.amber,
-                                visualDensity: VisualDensity.compact,
-                              )
-                            : null,
-                        onTap: () {
-                          if (file.isDirectory) {
-                            _entrarEnCarpeta(file.name);
-                          } else if (file.isMarkdown) {
-                            // Si es Markdown, abrimos el visor de documentos (DocumentViewPage)
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DocumentViewPage(
-                                  repository: widget.repository,
-                                  file: file,
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('El archivo "${file.name}" no es Markdown legible.'),
+                                  duration: const Duration(seconds: 2),
                                 ),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('El archivo "${file.name}" no es Markdown legible.'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                      );
-                    },
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
       ),
     );

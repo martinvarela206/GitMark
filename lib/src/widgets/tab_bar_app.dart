@@ -8,17 +8,24 @@ import '../theme/app_theme.dart';
 /// el AppBar necesita calcular la altura física fija de su encabezado antes de dibujarlo.
 /// Dado que TabBarApp se ubica en la propiedad 'bottom' del AppBar, está obligada por
 /// contrato a declarar cuántos píxeles de alto va a ocupar (en este caso, 48.0 px).
+/// 
+/// Evolución de arquitectura:
+/// - Se añade el callback 'onTap' para notificar a HomePage el cambio de pestaña activa
+///   y permitir el filtrado reactivo de repositorios en memoria o consulta a SQLite.
 class TabBarApp extends StatelessWidget implements PreferredSizeWidget {
-  const TabBarApp({super.key});
+  final ValueChanged<int>? onTap;
+
+  const TabBarApp({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return const TabBar(
+    return TabBar(
       isScrollable: true,
       indicatorColor: AppTheme.acentoCyan,
       labelColor: AppTheme.acentoCyan,
       unselectedLabelColor: AppTheme.textoSecundario,
-      tabs: [
+      onTap: onTap,
+      tabs: const [
         Tab(text: 'Todos'),
         Tab(text: 'Recientes'),
         Tab(text: 'Públicos'),

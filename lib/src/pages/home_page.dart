@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/repository_model.dart';
+import '../services/database_service.dart';
+import '../services/github_service.dart';
 import '../services/local_data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cuota_api_info.dart';
@@ -32,6 +34,15 @@ class _HomePageState extends State<HomePage> {
   /// Colección en memoria de los repositorios que se están mostrando en pantalla.
   final List<RepositoryModel> _repos = [];
 
+  /// Colección de repositorios visitados recuperados de SQLite para la pestaña Recientes.
+  List<RepositoryModel> _reposRecientes = [];
+
+  /// Último repositorio visitado recuperado de SQLite para el banner superior.
+  RepositoryModel? _ultimoRepo;
+
+  /// Índice de la pestaña actualmente activa (0: Todos, 1: Recientes, 2: Públicos, 3: Mis repos).
+  int _tabSeleccionada = 0;
+
   /// Banderas booleanas para evitar que si el usuario scrollea rápido se
   /// disparen múltiples peticiones repetidas a la vez.
   /// - _isLoading: La primera vez, al no haber repositorios, muestra un spinner
@@ -51,8 +62,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // 1. Carga inicial: apenas se construye la pantalla, busca los primeros repositorios.
-    _cargarRepositoriosIniciales();
+    // 1. Carga inicial: recupera último visitado, recientes y catálogo general.
+    _inicializarDatos();
 
     // 2. Listener de Scroll Infinito:
     // Escucha cada movimiento del scroll. La fórmula detecta si el usuario está a 200 píxeles
@@ -65,7 +76,8 @@ class _HomePageState extends State<HomePage> {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 200 &&
           !_isLoadingMore &&
-          !_isLoading) {
+          !_isLoading &&
+          _tabSeleccionada == 0) {
         _cargarMasRepositorios();
       }
     });
@@ -79,11 +91,24 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  /// Carga inicial: limpia la lista y solicita los repositorios por primera vez.
-  /// QUE REPOSITORIOS SOLICITA POR PRIMERA VEZ?
-  Future<void> _cargarRepositoriosIniciales() async {
+  /// Carga inicial: inicializa la base de datos, recupera el último visitado
+  /// y carga los repositorios del catálogo.
+  Future<void> _inicializarDatos() async {
     setState(() => _isLoading = true);
     try {
+      // 1. Detección de primer arranque: ¿SQLite está vacía?
+      final tieneRegistros = await DatabaseService.instance.hasRepositories();
+      if (!tieneRegistros) {
+        try {
+          final repoGitMark = await GitHubService.instance.getRepository('martinvarela206', 'GitMark');
+          await DatabaseService.instance.insertOrUpdate(repoGitMark);
+        } catch (_) {}
+      }
+
+      // 2. Cargamos el historial de recientes y el último visitado desde SQLite
+      await _actualizarDatosDesdeSQLite();
+
+      // 3. Cargamos los repositorios del catálogo general
       final nuevos = await LocalDataService.loadRepositories();
       setState(() {
         _repos.clear();
@@ -95,33 +120,76 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// Consulta SQLite para refrescar el banner y la lista de recientes
+  Future<void> _actualizarDatosDesdeSQLite() async {
+    final ultimo = await DatabaseService.instance.getLastVisitedRepo();
+    final recientes = await DatabaseService.instance.getRecentRepositories();
+    if (mounted) {
+      setState(() {
+        _ultimoRepo = ultimo;
+        _reposRecientes = recientes;
+      });
+    }
+  }
+
   /// Carga adicional disparada automáticamente por el scroll infinito.
   Future<void> _cargarMasRepositorios() async {
     setState(() => _isLoadingMore = true);
-    
-    // Simula una demora de red (1.5 segundos) para que sea visible el spinner inferior.
-    await Future.delayed(const Duration(milliseconds: 1500));
-    final masRepos = await LocalDataService.loadRepositories();
-    
-    setState(() {
-      _paginaActual++; // Incrementa la página para la siguiente tanda.
-      _repos.addAll(masRepos);
-      _isLoadingMore = false;
-    });
+    // Simula una demora de red (1 segundo) para que sea visible el spinner inferior.
+    await Future.delayed(const Duration(milliseconds: 1000));
+    try {
+      final masRepos = await LocalDataService.loadRepositories();
+      setState(() {
+        _paginaActual++; // Incrementa la página para la siguiente tanda.
+        _repos.addAll(masRepos);
+        _isLoadingMore = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingMore = false);
+    }
   }
 
-  /// Navega al explorador de archivos pasando el repositorio seleccionado como parámetro.
-  void _navegarAExplorador(BuildContext context, RepositoryModel repo) {
-    Navigator.push(
+  /// Navega al explorador de archivos pasando el repositorio seleccionado como parámetro
+  /// y guarda la visita en SQLite.
+  Future<void> _navegarAExplorador(BuildContext context, RepositoryModel repo) async {
+    // 1. Guardamos la visita en SQLite con la fecha/hora actual
+    await DatabaseService.instance.insertOrUpdate(repo);
+
+    // 2. Refrescamos el banner superior y la lista de recientes de inmediato
+    await _actualizarDatosDesdeSQLite();
+
+    // 3. Navegamos a la pantalla de exploración
+    if (!context.mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => RepoExplorerPage(repository: repo),
       ),
     );
+
+    // Al regresar del explorador, volvemos a sincronizar la vista
+    _actualizarDatosDesdeSQLite();
+  }
+
+  /// Filtra la lista a mostrar según la pestaña seleccionada
+  List<RepositoryModel> get _reposFiltrados {
+    switch (_tabSeleccionada) {
+      case 1:
+        return _reposRecientes;
+      case 2:
+        return _repos.where((r) => !r.isPrivate).toList();
+      case 3:
+        return _repos.where((r) => r.repoCategory == 'mine').toList();
+      case 0:
+      default:
+        return _repos;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final listaActual = _reposFiltrados;
+
     return DefaultTabController(
       length: 4, // 4 pestañas superiores: Todos, Recientes, Públicos, Mis repos
       child: Scaffold(
@@ -133,14 +201,35 @@ class _HomePageState extends State<HomePage> {
           actions: const [
             CuotaApiInfo(),
           ],
-          bottom: const TabBarApp(),
+          bottom: TabBarApp(
+            onTap: (index) {
+              setState(() => _tabSeleccionada = index);
+              if (index == 1) {
+                _actualizarDatosDesdeSQLite();
+              }
+            },
+          ),
         ),
         drawer: const DrawerApp(),
         body: Column(
           children: [
             const RepoSearchBar(),
-            const RecentRepoBanner(),
-            const SectionTitle(title: 'Repositorios recomendados'),
+            // Banner superior dinámico con el último repositorio visitado
+            RecentRepoBanner(
+              repoName: _ultimoRepo?.fullName ?? 'Sin visitas recientes',
+              onOpen: _ultimoRepo != null
+                  ? () => _navegarAExplorador(context, _ultimoRepo!)
+                  : null,
+            ),
+            SectionTitle(
+              title: _tabSeleccionada == 1
+                  ? 'Historial de visitas recientes (SQLite)'
+                  : (_tabSeleccionada == 2
+                      ? 'Repositorios públicos'
+                      : (_tabSeleccionada == 3
+                          ? 'Mis repositorios'
+                          : 'Repositorios recomendados')),
+            ),
             Expanded(
               // Si la pantalla está cargando por primera vez, mostramos el spinner central
               child: _isLoading
@@ -154,42 +243,78 @@ class _HomePageState extends State<HomePage> {
                       backgroundColor: AppTheme.fondoTarjeta,
                       onRefresh: () async {
                         _paginaActual = 1;
-                        await _cargarRepositoriosIniciales();
+                        await _inicializarDatos();
                       },
-                      // ListView.builder: Construye en memoria únicamente las tarjetas visibles,
-                      // ahorrando memoria y batería del dispositivo.
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 24),
-                        // TRUCO DE LA CÁTEDRA: itemCount suma +1 si estamos cargando más elementos.
-                        // Ese elemento extra es el casillero reservado para el spinner del fondo.
-                        itemCount: _repos.length + (_isLoadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          // Si el índice coincide con el largo de la lista, significa que
-                          // llegamos al casillero extra: dibujamos el spinner de carga inferior.
-                          if (index == _repos.length) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16.0),
-                              child: Center(
-                                child: CircularProgressIndicator(color: AppTheme.acentoCyan),
-                              ),
-                            );
-                          }
+                      child: _tabSeleccionada == 1 && listaActual.isEmpty
+                          ? _buildEmptyRecientes()
+                          // ListView.builder: Construye en memoria únicamente las tarjetas visibles,
+                          // ahorrando memoria y batería del dispositivo.
+                          : ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 24),
+                              // TRUCO DE LA CÁTEDRA: itemCount suma +1 si estamos cargando más elementos.
+                              // Ese elemento extra es el casillero reservado para el spinner del fondo.
+                              itemCount: listaActual.length +
+                                  (_isLoadingMore && _tabSeleccionada == 0 ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                // Si el índice coincide con el largo de la lista, significa que
+                                // llegamos al casillero extra: dibujamos el spinner de carga inferior.
+                                if (index == listaActual.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppTheme.acentoCyan,
+                                      ),
+                                    ),
+                                  );
+                                }
 
-                          // Si no es el casillero extra, dibuja la tarjeta normal del repositorio.
-                          final repo = _repos[index];
-                          return RepoCard(
-                            repository: repo,
-                            onTap: () => _navegarAExplorador(context, repo),
-                          );
-                        },
-                      ),
+                                // Si no es el casillero extra, dibuja la tarjeta normal del repositorio.
+                                final repo = listaActual[index];
+                                return RepoCard(
+                                  repository: repo,
+                                  onTap: () => _navegarAExplorador(context, repo),
+                                  onSyncCompleted: _actualizarDatosDesdeSQLite,
+                                );
+                              },
+                            ),
                     ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Estado vacío educativo para la pestaña Recientes
+  Widget _buildEmptyRecientes() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: 60),
+        Icon(Icons.history_toggle_off, size: 64, color: AppTheme.iconoMuted),
+        SizedBox(height: 16),
+        Text(
+          'No tienes repositorios recientes',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppTheme.textoPrincipal,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 8),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32.0),
+          child: Text(
+            'Explora cualquier repositorio desde la pestaña "Todos" o sincronízalo para que aparezca aquí disponible sin conexión.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppTheme.textoSecundario, fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 }
